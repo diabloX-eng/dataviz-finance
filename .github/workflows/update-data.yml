@@ -1,0 +1,49 @@
+name: Mise à jour quotidienne des données Yahoo Finance
+
+on:
+  # Permet de le lancer manuellement
+  workflow_dispatch:
+  
+  # Programme l'exécution automatique
+  schedule:
+    # Exécute à 8h00 UTC, du Lundi au Vendredi
+    # (Les marchés sont fermés le week-end)
+    - cron: '0 8 * * 1-5'
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Récupère le code de votre dépôt
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      # 2. Installe Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # 3. Installe les bibliothèques nécessaires
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install yfinance pandas
+
+      # 4. Exécute votre script Python
+      - name: Run data update script
+        run: python update_data.py
+
+      # 5. Envoie les modifications (le nouveau CSV) sur GitHub
+      - name: Commit and push if data changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          # Ne fait un "commit" que s'il y a des changements
+          if ! git diff --staged --quiet; then
+            git commit -m "Mise à jour automatique des données financières"
+            git push
+          else
+            echo "Pas de changements de données."
+          fi
